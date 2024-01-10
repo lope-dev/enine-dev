@@ -1,0 +1,23 @@
+name: terraform docs
+description: Leverages terraform-docs/gh-actions to generate README.md for the terraform module or stack
+inputs:
+  working_directory:
+    description: The root of the terraform config files (.)
+    required: true
+  tfdocs-config-path:
+    description: filepath with in the repo to load tfdocs config from 
+    required: true
+  github-token:
+    description: Uses token as input since it cant be defined within action.yml
+    required: false
+    
+runs:
+  using: composite
+  steps:
+  - uses: terraform-docs/gh-actions@cfde42f79b15256c71f4b79ae1d6acea0f689952
+    with:
+      working-dir: ${{ inputs.working_directory }}
+      config-file: ${{ inputs.tfdocs-config-path }}
+      output-file: README.md
+      output-method: replace
+      git-push: "true"

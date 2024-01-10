@@ -1,0 +1,37 @@
+name: aws-iam-policy-scanner
+description: leverages the aws cli to scan iam polices
+inputs:
+  github-token:
+    description: Uses token as input since it cant be defined within action.yml
+    required: true
+  iam-policy-path:
+    description: path to iam-policy
+    default: '.'
+    required: true
+  aws-region:
+    description: region for aws
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    - name: Install awscli
+      shell: bash
+      run: |
+          python -m pip install --upgrade pip
+          pip install awscli
+    - name: Check policy
+      shell: bash
+      run: |
+        for policy in ${{ inputs.iam-policy-path }}; do
+            echo "Validating $policy..."
+            result=$(aws accessanalyzer validate-policy --policy-document "$(cat $policy)" --policy-type IDENTITY_POLICY --region ${{ inputs.aws-region }})
+            echo "$result"
+            if [[ $result == *'findingType": "ERROR"'* ]]; then
+              echo "Error found in $policy. Exiting."
+              exit 1
+            fi
+        done       

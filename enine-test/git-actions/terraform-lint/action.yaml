@@ -1,0 +1,41 @@
+name: terraform-lint
+description: leverages tflint to validate terraform code
+inputs:
+  tflint-config-repo:
+    description: repository to load tflint config from
+    required: true
+  repo-branch:
+    description: The branch where the TFLint config can be found
+    required: true
+  tflint-config-path:
+    description: filepath with in the repo to load tflint config from
+    required: true
+  github-token:
+    description: Uses token as input since it can't be defined within action.yml
+    required: true
+  path:
+    description: Path to a Terraform files
+    default: '.'
+    
+runs:
+  using: composite
+  steps:
+  - uses: terraform-linters/setup-tflint@0da770d808becb07add20e50b83a856f322f14ac
+    with:
+      tflint_version: latest
+  - uses: terraform-linters/tflint-load-config-action@9dd562749d7b2c98b3c100d085c7df601f5feee9
+    with:
+      source-repo: ${{ inputs.tflint-config-repo }}
+      source-path: ${{ inputs.tflint-config-path }}
+      source-ref: ${{ inputs.repo-branch }}
+      token: ${{ inputs.github-token }}
+  - name: Initialize TFLint
+    run: tflint --init
+    working-directory: ${{ inputs.Path }}
+    shell: bash
+    env:
+      GITHUB_TOKEN: ${{ inputs.github-token }}
+  - name: Run TFLint
+    shell: bash
+    working-directory: ${{ inputs.Path }}
+    run: tflint -f compact

@@ -1,0 +1,32 @@
+name: release
+description: creates a versioned release using semantic-release
+# NOTE: for more information about semantic-release, please consult the upstream
+# repository: https://github.com/semantic-release/semantic-release
+inputs:
+  release-token:
+    description: "A GitHub PAT"
+    required: true
+runs:
+  using: composite
+  steps:
+  - uses: actions/checkout@v2
+  - uses: actions/setup-node@v2
+    with:
+      # NOTE: later releases of semantic-release may require updating the node
+      # version used in this action.  Please keep an eye on the status of
+      # builds to see if a node version error occurs.
+      node-version: "19.x"
+  - name: Create New Release
+    shell: bash
+    run: |
+      npm install -g semantic-release             \
+      "@semantic-release/changelog"               \
+      "@semantic-release/commit-analyzer"         \
+      "@semantic-release/github"                  \
+      "@semantic-release/release-notes-generator" \
+      "@semantic-release/exec"
+      npx semantic-release
+    env:
+      # NOTE: a built-in GITHUB_TOKEN can be used as well, however it is safer
+      # to create a PAT scoped specifically to creating releases.
+      GITHUB_TOKEN: ${{ inputs.release-token }}

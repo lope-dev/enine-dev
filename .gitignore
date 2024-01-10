@@ -34,6 +34,6 @@ override.tf.json
 terraform.rc
 
 # OS Specific files
-.DS_Store
+
 
 

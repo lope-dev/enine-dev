@@ -1,0 +1,67 @@
+name: terraform-apply
+description: Leverages `dflook/terraform-apply` to run Terraform apply using Terraform Enterprise/Cloud and OSS
+inputs:
+  var_file:
+    description: Path to a Terraform variable file
+    required: true
+  tfe_org:
+    description: The organization that stores the state file for the Terraform code base
+    required: false
+    default: ''
+  tfe_workspace:
+    description: The TFE/TFC workspace that stores the state file for the Terraform code base
+    required: false
+    default: ''
+  tfe_token:
+    description: Authentication token for tfe/tfc
+    required: false
+    default: ''
+  parallelism_number:
+    description: The number of concurrent operations
+    required: false
+    default: '10'
+  backend_config:
+    description: Backend configuration for Terraform remote state
+    required: false
+    default: ''
+  path:
+    description: Path to a Terraform files
+    default: '.'
+ 
+
+runs:
+  using: composite
+  steps:
+      - name: Terraform Apply - OSS
+        uses: dflook/terraform-apply@5430d6b38e3bfbda62eb96b11a85b08536688d49
+        id: terraform-apply-os-no-backend-config
+        if: ${{ inputs.tfe_workspace == '' && inputs.backend_config == '' }}
+        with:
+          auto_approve: true
+          parallelism: ${{ inputs.parallelism_number }}
+          path: ${{ inputs.path }}
+          var_file: ${{ inputs.var_file }}
+
+      - name: Terraform Apply - OSS
+        uses: dflook/terraform-apply@5430d6b38e3bfbda62eb96b11a85b08536688d49
+        id: terraform-apply-os-backend-config
+        if: ${{ inputs.tfe_workspace == '' && inputs.backend_config != '' }}
+        with:
+          auto_approve: true
+          parallelism: ${{ inputs.parallelism_number }}
+          path: ${{ inputs.path }}
+          var_file: ${{ inputs.var_file }}
+          backend_config: |
+            ${{ inputs.backend_config }}
+
+      - name: Terraform Apply - TFE
+        uses: dflook/terraform-apply@5430d6b38e3bfbda62eb96b11a85b08536688d49
+        id: terraform-apply-tfe
+        if: ${{ inputs.tfe_workspace != '' }}
+        env:
+          TERRAFORM_CLOUD_TOKENS: ${{ inputs.tfe_org }}=${{ inputs.tfe_token }}
+        with:
+          auto_approve: true
+          workspace: ${{ inputs.tfe_workspace }}
+          path: ${{ inputs.path }}
+          var_file: ${{ inputs.var_file }}

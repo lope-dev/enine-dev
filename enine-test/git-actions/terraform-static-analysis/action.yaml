@@ -1,0 +1,32 @@
+name: static-analysis
+description: leverages checkov to perform static analysis on a repository
+inputs:
+  config-file:
+    description: The location of the checkov config file
+    required: true
+    default: test/checkov/config.yaml
+  github-token:
+    description: Uses token as input since it can't be defined within action.yml
+    required: true
+    
+runs:
+  using: composite
+  steps:
+  - uses: actions/setup-python@v4
+    with:
+      # NOTE: depending on the version of checkov being used, we might need to
+      # periodically change the python version that is being used.  Another
+      # option would be to create a matrix that attempts to run multiple
+      # versions of python in parallel.
+      python-version: '3.10'
+  - name: Install Checkov
+    shell: bash
+    run: |
+      pip install --upgrade pip
+      pip install checkov
+  - name: Run Checkov
+    shell: bash
+    run: |
+      export GITHUB_TOKEN=${{ inputs.github-token }}
+      checkov --config-file ${{ inputs.config-file }}
+ 

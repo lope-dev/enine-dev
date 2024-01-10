@@ -1,0 +1,26 @@
+name: terraform-validate
+description: leverages dflook/terraform-validate to validate terraform code
+inputs:
+  path:
+    description: Path to a Terraform files
+    default: '.'
+  tf-providers-path:
+    description: The path to a providers file used by the module during testing
+    required: false
+    default: ''
+  github-token:
+    description: Uses token as input since it cant be defined within action.yml
+    required: true
+    
+runs:
+  using: composite
+  steps:
+    - uses: dflook/terraform-validate@36fc39176778bf3c333f025bde5466e5afee2780
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        TERRAFORM_PRE_RUN: |
+          if [ "${{ inputs.tf-providers-path }}" != '' ]; then
+            cp ${{ inputs.tf-providers-path }} .
+          fi
+      with:
+          path: ${{ inputs.path }}

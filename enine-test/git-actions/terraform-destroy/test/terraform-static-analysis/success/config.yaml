@@ -1,0 +1,19 @@
+---
+block-list-secret-scan: []
+branch: main
+directory:
+  - ./test/terraform-static-analysis/success/
+download-external-modules: false
+evaluate-variables: true
+external-modules-download-path: .external_modules
+framework:
+  - terraform
+mask: []
+output:
+  - cli
+  - sarif
+  - github_failed_only
+quiet: true
+secrets-history-timeout: 12h
+secrets-scan-file-type: []
+summary-position: top
