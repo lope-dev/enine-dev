@@ -35,5 +35,7 @@ terraform.rc
 
 # OS Specific files
 
+# OS Specific files
+.DS_Store
 
 
