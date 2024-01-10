@@ -1,0 +1,48 @@
+name: on deploy prod
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - test/tfvars/prod/prod.auto.tfvars
+      - "*.tf"
+      - "resources/policies/*.json"
+
+concurrency: deploy-prod
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # This is required for requesting the JWT
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    name: run terraform apply
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # AWS_ACCESS_KEY_ID: ${{ secrets.EPHEMERAL_MGMT_AWS_ACCESS_KEY_ID }}
+      # AWS_SECRET_ACCESS_KEY: ${{ secrets.EPHEMERAL_MGMT_AWS_SECRET_ACCESS_KEY }}
+      # AWS_REGION: ${{ secrets.AWS_REGION }}
+      TERRAFORM_HTTP_CREDENTIALS: |
+        github.com=user:${{ secrets.TF_VAR_GITHUB_PAT }}
+      TERRAFORM_PRE_RUN: |
+        cp test/providers.tf .
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Copy backend file to root
+        run: |
+          cp test/tfvars/prod/prod.backend.tf .
+          
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::975532879991:role/TerraformOIDCTestRole
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: terraform-apply
+        uses: cwt-ahead-internal/cwt-github-actions/terraform-apply@main
+        with:
+          var_file: test/tfvars/prod/prod.auto.tfvars

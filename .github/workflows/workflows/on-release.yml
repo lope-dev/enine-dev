@@ -1,0 +1,21 @@
+name: on release
+
+on:
+  push:
+    branches: [main]
+    
+permissions:
+  contents: write
+  pull-requests: read 
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    name: release-code
+    steps:
+      - name: release code
+        id: 'release-code'
+        uses: cwt-dev/github-actions/release@main
+        with:
+          release-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: false 

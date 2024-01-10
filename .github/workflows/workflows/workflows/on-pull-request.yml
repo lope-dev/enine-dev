@@ -1,0 +1,46 @@
+name: on pull request
+
+on: [pull_request]
+
+permissions:
+  contents: write
+  pull-requests: write   
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    name: run terraform plan
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.EPHEMERAL_MGMT_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.EPHEMERAL_MGMT_AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      TERRAFORM_HTTP_CREDENTIALS: |
+        github.com=user:${{ secrets.TF_VAR_GITHUB_PAT }}
+      TERRAFORM_PRE_RUN: |
+        cp test/providers.tf .
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: terraform plan
+        uses: cwt-ahead-internal/cwt-github-actions/terraform-plan@main
+        with:
+          var_file: test/tfvars/ci/ci.auto.tfvars
+          
+  docs:
+    needs: plan
+    runs-on: ubuntu-latest
+    name: create readme
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.ref }}
+
+    - name: 'terraform docs creation'
+      id: 'terraform-docs'
+      uses: cwt-ahead-internal/cwt-github-actions/terraform-docs@main
+      with:
+        working_directory: .
+        tfdocs-config-path: ./test/terraform-docs/.terraform-docs.yml
+      continue-on-error: false

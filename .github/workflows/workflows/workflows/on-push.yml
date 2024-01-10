@@ -1,0 +1,136 @@
+name: on push
+
+on:
+  push:
+    branches-ignore:
+      - main
+    tags-ignore:
+      - '*'
+      
+permissions:
+  contents: write
+  pull-requests: write      
+  
+jobs:
+  # checkov-github-actions-scan:
+  #   runs-on: ubuntu-latest
+  #   name: workflow scan
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v3
+
+  #     - name: 'github workflow static analysis'
+  #       id: 'github-workflow-static-analysis'
+  #       uses: cwt-ahead-internal/cwt-github-actions/github-workflow-scan@main
+  #       with:
+  #         github-token: ${{ secrets.GITHUB_TOKEN }}
+  #       continue-on-error: false
+        
+  # secrets-scan:
+  #   name: secrets scan
+  #   needs: checkov-github-actions-scan
+  #   runs-on: macos-latest
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v3
+        
+  #     - name: 'repo secrets scanner'
+  #       id: 'repo-secrets-scanner'
+  #       uses: cwt-ahead-internal/cwt-github-actions/terraform-secrets-scan@main
+  #       with:
+  #         repository_path: .
+  #         config-file: test/gitleaks/config.toml
+  #       continue-on-error: false 
+        
+  validate:
+    #needs: secrets-scan
+    runs-on: ubuntu-latest
+    name: validate terraform
+    env:
+      TERRAFORM_HTTP_CREDENTIALS: |
+        github.com=user:${{ secrets.TF_VAR_GITHUB_PAT }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        
+      - name: terraform validate
+        id: 'terraform-validate'
+        uses: cwt-ahead-internal/cwt-github-actions/terraform-validate@main
+        continue-on-error: false 
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          tf-providers-path: test/providers.tf
+
+  # validate-policies:
+  #   needs: validate
+  #   runs-on: ubuntu-latest
+  #   name: validate iam
+  #   env:
+  #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
+
+  #     - name: set up aws credential file
+  #       run: |
+  #         mkdir -p ~/.aws
+  #         echo "[default]" > ~/.aws/credentials
+  #         echo "aws_access_key_id = ${{ secrets.EPHEMERAL_MGMT_AWS_ACCESS_KEY_ID }}" >> ~/.aws/credentials
+  #         echo "aws_secret_access_key = ${{ secrets.EPHEMERAL_MGMT_AWS_SECRET_ACCESS_KEY }}" >> ~/.aws/credentials
+
+  #     - name: Validate IAM Policies in policies directory
+  #       run: |
+  #         for policy in resources/policies/*.json; do
+  #           echo "Validating $policy..."
+  #           result=$(aws accessanalyzer validate-policy --policy-document "$(cat $policy)" --policy-type IDENTITY_POLICY --region ${{ secrets.AWS_REGION }})
+  #           echo "$result"
+  #           if [[ $result == *'findingType": "ERROR"'* ]]; then
+  #             echo "Error found in $policy. Exiting."
+  #             exit 1
+  #           fi
+  #         done
+
+  # format:
+  #   needs: validate
+  #   runs-on: ubuntu-latest
+  #   name: format code
+  #   steps:
+  #     - name: terraform fmt
+  #       id: 'terraform-format'
+  #       uses: cwt-ahead-internal/cwt-github-actions/terraform-format@main
+  #       continue-on-error: false 
+        
+  # tflint:
+  #   needs: format
+  #   runs-on: ubuntu-latest
+  #   name: lint code
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v2
+  #     - name: 'Terraform Lint'
+  #       id: 'terraform-lint'
+  #       uses: cwt-ahead-internal/cwt-github-actions/terraform-lint@main
+  #       with:
+  #         tflint-config-repo: ${{ github.repository }}
+  #         tflint-config-path: test/tflint/tflint.hcl
+  #         github-token: ${{ secrets.GITHUB_TOKEN }}
+  #         #repo-branch: field can be used to point the branch where tflint config lives
+  #         #Use for testing tflint before code exist in main
+  #       continue-on-error: false
+
+  # checkov-job:
+  #   needs: tflint
+  #   runs-on: ubuntu-latest
+  #   name: vulnerability scan
+    
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v3
+
+  #     - name: 'terraform static analysis'
+  #       id: 'terraform-static-analysis'
+  #       uses: cwt-ahead-internal/cwt-github-actions/terraform-static-analysis@main
+  #       with:
+  #         config-file: test/checkov/config.yaml
+  #         github-token: ${{ secrets.GITHUB_TOKEN }}
+  #       continue-on-error: false

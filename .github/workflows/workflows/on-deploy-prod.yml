@@ -1,0 +1,58 @@
+name: on deploy prod
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - test/tfvars/prod/prod.auto.tfvars
+      - "*.tf"
+      - "resources/policies/*.json"
+      - ".github/workflows/*"
+
+concurrency: deploy-prod
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # This is required for requesting the GitHub web token
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    name: run terraform apply
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TERRAFORM_HTTP_CREDENTIALS: |
+        github.com=user:${{ secrets.TF_VAR_GITHUB_PAT }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Get credentials from the AWS account where permission sets
+      # will be deployed
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::598061996778:role/github-action
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Store those credentials in Terraform-specific environment variables
+      # so they are accessible to the providers that use them (see test/providers.tf file)
+      # https://developer.hashicorp.com/terraform/language/values/variables#environment-variables
+      - name: Save AWS credentials as Terraform environment variables
+        run: |
+          echo "TF_VAR_mgmt_aws_access_key_id=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
+          echo "TF_VAR_mgmt_aws_secret_access_key=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+          echo "TF_VAR_aws_region=us-east-1" >> $GITHUB_ENV
+          echo "TF_VAR_mgmt_aws_session_token=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
+
+      # Get credentials from the AWS account where the terraform S3 bucket is stored
+      # These will be exported using the regular AWS environment variable names
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::199760102666:role/github-action
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: terraform-apply
+        uses: cwt-dev/github-actions/terraform-apply@main

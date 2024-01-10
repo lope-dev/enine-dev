@@ -1,0 +1,62 @@
+name: on pull request
+
+on: [pull_request]
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # This is required for requesting the JWT
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    name: run terraform plan
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      TERRAFORM_HTTP_CREDENTIALS: |
+        github.com=user:${{ secrets.TF_VAR_GITHUB_PAT }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        
+      #Get credentials from MGMT account and store in TF_VAR_ environment variables
+      - name: configure aws credentials - mgmt account
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::598061996778:role/github-action
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Save credentials to the TF_VAR_mgmt_aws* environment variables - https://developer.hashicorp.com/terraform/language/values/variables#environment-variables
+      - name: Save AWS credentials as Terraform environment variables
+        run: |
+          echo "TF_VAR_mgmt_aws_access_key_id=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
+          echo "TF_VAR_mgmt_aws_secret_access_key=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+          echo "TF_VAR_aws_region=us-east-1" >> $GITHUB_ENV
+          echo "TF_VAR_mgmt_aws_session_token=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
+      
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::199760102666:role/github-action
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: terraform plan
+        uses: cwt-dev/github-actions/terraform-plan@main
+          
+  docs:
+    needs: plan
+    runs-on: ubuntu-latest
+    name: create readme
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.ref }}
+
+    - name: 'terraform docs creation'
+      id: 'terraform-docs'
+      uses: cwt-dev/github-actions/terraform-docs@main
+      with:
+        working_directory: .
+        tfdocs-config-path: ./test/terraform-docs/.terraform-docs.yml
+      continue-on-error: false
