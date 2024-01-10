@@ -1,0 +1,44 @@
+name: terraform-test
+description: leverages terratest to determine if a module provisions as expected
+inputs:
+  test-directory:
+    description: Directory that contains the tests
+    required: true
+  providers-file:
+    description: A providers.tf file to use with the terratest module test
+    required: false
+    default: test/providers.tf
+  timeout:
+    description: The timeout value of go test in minutes
+    required: false
+    default: 30m
+    
+runs:
+  using: composite
+  steps:
+  - uses: actions/checkout@v3
+  - uses: actions/setup-go@v4
+    with:
+      # NOTE: depending on the environment consuming this workflow, it might be
+      # better to create a matrix for running specific versions of Go. If
+      # Terratest requires a newer version of Go to run, this action must be
+      # updated.  keep an eye for Go version mismatch issues in workflow runs.
+      go-version: '1.19'
+      check-latest: true
+      cache: true
+      cache-dependency-path: ${{ inputs.test-directory }}/go.sum
+  - name: Copy providers file
+    shell: bash
+    run: cp ${{ inputs.providers-file }} . || true
+  - name: Run Terratest Against Module
+    env:
+      WORK_DIR: ${{ inputs.test-directory }}
+    shell: bash
+    run: |
+      cd "$WORK_DIR"
+      go mod download
+      go test -v . -timeout ${{ inputs.timeout }}
+
+# NOTE: we call go test with a 30 minute timeout to allow for hosted provider
+# resources that take a long time to provision. 
+# Added line forcing pull request

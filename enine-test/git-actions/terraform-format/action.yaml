@@ -1,0 +1,17 @@
+name: terraform-format
+description: checks that HCL code conforms to hashicorp formatting standards
+inputs:
+  path:
+    description: Path to a Terraform files
+    default: '.'
+runs:
+  using: composite
+  steps:
+  - uses: actions/checkout@v3
+    with:
+      ref: ${{ github.event.pull_request.head.ref }}
+  - name: Format and Validate Terraform Module
+    shell: bash
+    working-directory: ${{ inputs.Path }}
+    run: |
+      terraform fmt -check -recursive -diff

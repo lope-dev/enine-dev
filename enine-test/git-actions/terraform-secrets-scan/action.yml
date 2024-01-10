@@ -1,0 +1,31 @@
+name: secrets-scanner
+description: leverages a secrets scanner (currently gitleaks) to detect secrets in a repository
+inputs:
+  repository_path:
+    description: The root path of a directory to scan for secrets
+    required: true
+  config-file:
+    description: The path to the gitleaks .toml config file
+    required: true
+    default: test/gitleaks/gitleaks-config.toml
+  extra-flags:
+    description: Provides the ability to add additional flags to the command
+    required: false
+  github-token:
+    description: Uses token as input since it cant be defined within action.yml
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Run GitLeaks
+      shell: bash
+      run: |
+        pwd=`pwd`
+        cd ..
+        git clone https://github.com/gitleaks/gitleaks.git
+        cd gitleaks
+        git checkout d9f86d6123d9ef2558c4852a522a7a071d6a6fe9
+        make build
+        cd $pwd
+        ../gitleaks/gitleaks detect --source ${{ inputs.repository_path }} --config ${{ inputs.config-file }} -v ${{ inputs.extra-flags}}
