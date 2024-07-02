@@ -21,8 +21,7 @@ runs:
   - name: Install GitLeaks
     shell: bash
     run: |
-      pip install --upgrade pip
-      pip install gitleaks
+      brew install gitleaks
   - name: Run GitLeaks
     shell: bash
     run: |
