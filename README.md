@@ -22,5 +22,5 @@ A repo for all SCP policies
 ## Deployment Instructions
 1. Create a new Feature/Development branch and perform code changes as required. Prefix the branch name with `pre/` if require a pre-release.
 2. Once confirmed, create PR to merge to code to `main` or `master` branch using standard Code Review practises.
-3. Once code changes merged, Jenkins Pipeline will perform a DRY_RUN for the new tag/release on Sandbox environment (`sb01_mgmt`).
+3. Once code changes merged, Jenkins Pipeline will perform a DRY_RUN for the new tag/release on Sandbox environment (`sb01`).
 4. After changes are confirmed, click on `Build with Parameters` on the Jenkins platform and select desired environments, `DRY_RUN` flag to perform deployment.
